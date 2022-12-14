@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 from prophet.plot import plot_plotly
 import joblib
+from pandas.plotting import lag_plot
+from statsmodels.tsa.stattools import acf
+#from prophet.diagnostics import cross_validation
 
 def main():
     st.title('Dataframe originale sulle spine')
@@ -30,6 +33,19 @@ def main():
     isto = df_spine['Quantità'].plot(kind='hist', bins=bins_scelti)
     st.pyplot(isto.figure,clear_figure=True)
 
+    st.title('Lag plot originale sulle spine')
+    lag = int(st.text_input(f'Scegli il lag (dev\'essere un numero intero compreso tra 1 e {len(df_spine)-1}!)',value=1))
+    if (lag>len(df_spine)-1) or (lag < 1):
+        st.write(f'Devi inserire un numero compreso tra 1 e {len(df_spine)-1}!')
+    else:
+        grafico_lag = lag_plot(df_spine['Quantità'],lag)
+        st.pyplot(grafico_lag.figure,clear_figure=True)
+
+        autocorrelation_vet = acf(df_spine['Quantità'],nlags=lag)
+        autocorrelation = autocorrelation_vet[-1]
+        st.write(f'L\'autocorrelazione di questo lag plot è del {round(100*autocorrelation,2)}%')
+    
+
     st.title('Dataframe sulle spine senza outliers')
     df_spine_rid = df_spine[(df_spine['Quantità']<370) & (df_spine['Quantità']>10)]
     df_spine_rid = df_spine_rid.reset_index()
@@ -47,6 +63,18 @@ def main():
     isto2 = df_spine_rid['Quantità'].plot(kind='hist', bins=bins_scelti2)
     st.pyplot(isto2.figure,clear_figure=True)
 
+    st.title('Lag plot sulle spine senza outliers')
+    lag2 = int(st.text_input(f'Scegli il lag (dev\'essere un numero intero compreso tra 1 e {len(df_spine_rid)-1}!)',value=1))
+    if (lag2>len(df_spine_rid)-1) or (lag2 < 1):
+        st.write(f'Devi inserire un numero compreso tra 1 e {len(df_spine_rid)-1}!')
+    else:
+        grafico_lag2 = lag_plot(df_spine_rid['Quantità'],lag2)
+        st.pyplot(grafico_lag2.figure,clear_figure=True)
+        
+        autocorrelation_vet2 = acf(df_spine_rid['Quantità'],nlags=lag2)
+        autocorrelation2 = autocorrelation_vet2[-1]
+        st.write(f'L\'autocorrelazione di questo lag plot è del {round(100*autocorrelation2,2)}%')
+
     model = joblib.load('model_spine.pkl')
 
     st.title('Componenti delle spine senza outliers')
@@ -56,6 +84,7 @@ def main():
     comp = model.plot_components(forecast)
     st.pyplot(comp.figure,clear_figure=True)
 
+    st.title('Forecasting')
     da_pred = st.slider('Scegli quanti giorni prevedere',1,365,1)
     future = model.make_future_dataframe(da_pred, freq='D')
     forecast = model.predict(future)
@@ -67,14 +96,14 @@ def main():
     st.plotly_chart(fig)
 
     # df_cv_final=cross_validation(model,
-    #                         horizon=str(da_pred) + " days",
+    #                         horizon="60 days",
     #                         period='10 days',
     #                         initial='450 days',
     #                         )
     # df_performance=performance_metrics(df_cv_final)
     # mape = df_performance['mape'].mean()
-    # st.write(f'L\'errore percentuale medio è del {round(mape*100,2)}%')
-    st.write(f'L\'errore percentuale medio della previsione calcolato sugli ultimi 60 giorni è intorno al 17%')
+    # st.write(f'L\'errore percentuale medio della previsione calcolato sugli ultimi 60 giorni è del {round(mape*100,2)}%')
+    st.write(f'L\'errore percentuale medio della previsione calcolato sugli ultimi 60 giorni è del 16.56%')
 
 if __name__ == "__main__":
     main()

@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from prophet.plot import plot_plotly
 import joblib
+from pandas.plotting import lag_plot
+from statsmodels.tsa.stattools import acf
 
 def main():
     st.title('Dataframe originale sui fritti')
@@ -32,6 +34,19 @@ def main():
     isto = df_fritti['Quantità'].plot(kind='hist', bins=bins_scelti)
     st.pyplot(isto.figure,clear_figure=True)
 
+    st.title('Lag plot originale sui fritti')
+    lag = int(st.text_input(f'Scegli il lag (dev\'essere un numero intero compreso tra 1 e {len(df_fritti)-1}!)',value=1))
+    if (lag>len(df_fritti)-1) or (lag < 1):
+        st.write(f'Devi inserire un numero compreso tra 1 e {len(df_fritti)-1}!')
+    else:
+        grafico_lag = lag_plot(df_fritti['Quantità'],lag)
+        st.pyplot(grafico_lag.figure,clear_figure=True)
+
+        autocorrelation_vet = acf(df_fritti['Quantità'],nlags=lag)
+        autocorrelation = autocorrelation_vet[-1]
+        st.write(f'L\'autocorrelazione di questo lag plot è del {round(100*autocorrelation,2)}%')
+    
+
     st.title('Dataframe sui fritti senza outliers')
     df_fritti_rid = df_fritti[(df_fritti['Quantità']<69) & (df_fritti['Quantità']>5)]
     df_fritti_rid = df_fritti_rid.reset_index()
@@ -49,6 +64,18 @@ def main():
     isto2 = df_fritti_rid['Quantità'].plot(kind='hist', bins=bins_scelti2)
     st.pyplot(isto2.figure,clear_figure=True)
 
+    st.title('Lag plot sui fritti senza outliers')
+    lag2 = int(st.text_input(f'Scegli il lag (dev\'essere un numero intero compreso tra 1 e {len(df_fritti_rid)-1}!)',value=1))
+    if (lag2>len(df_fritti_rid)-1) or (lag2 < 1):
+        st.write(f'Devi inserire un numero compreso tra 1 e {len(df_fritti_rid)-1}!')
+    else:
+        grafico_lag2 = lag_plot(df_fritti_rid['Quantità'],lag2)
+        st.pyplot(grafico_lag2.figure,clear_figure=True)
+        
+        autocorrelation_vet2 = acf(df_fritti_rid['Quantità'],nlags=lag2)
+        autocorrelation2 = autocorrelation_vet2[-1]
+        st.write(f'L\'autocorrelazione di questo lag plot è del {round(100*autocorrelation2,2)}%')
+
     model = joblib.load('model_fritti.pkl')
 
     st.title('Componenti dei fritti senza outliers')
@@ -58,6 +85,7 @@ def main():
     comp = model.plot_components(forecast)
     st.pyplot(comp.figure,clear_figure=True)
 
+    st.title('Forecasting')
     da_pred = st.slider('Scegli quanti giorni prevedere',1,365,1)
     future = model.make_future_dataframe(da_pred, freq='D')
     forecast = model.predict(future)

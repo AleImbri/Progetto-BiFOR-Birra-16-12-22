@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from prophet.plot import plot_plotly
 import joblib
+from pandas.plotting import lag_plot
+from statsmodels.tsa.stattools import acf
 
 def main():
     st.title('Dataframe originale sui bar')
@@ -32,6 +34,18 @@ def main():
     isto = df_bar['Quantità'].plot(kind='hist', bins=bins_scelti)
     st.pyplot(isto.figure,clear_figure=True)
 
+    st.title('Lag plot originale sui bar')
+    lag = int(st.text_input(f'Scegli il lag (dev\'essere un numero intero compreso tra 1 e {len(df_bar)-1}!)',value=1))
+    if (lag>len(df_bar)-1) or (lag < 1):
+        st.write(f'Devi inserire un numero compreso tra 1 e {len(df_bar)-1}!')
+    else:
+        grafico_lag = lag_plot(df_bar['Quantità'],lag)
+        st.pyplot(grafico_lag.figure,clear_figure=True)
+
+        autocorrelation_vet = acf(df_bar['Quantità'],nlags=lag)
+        autocorrelation = autocorrelation_vet[-1]
+        st.write(f'L\'autocorrelazione di questo lag plot è del {round(100*autocorrelation,2)}%')
+
     st.title('Dataframe sui bar senza outliers')
     df_bar_rid = df_bar[(df_bar['Quantità']<109)]
     df_bar_rid = df_bar_rid.reset_index()
@@ -49,6 +63,19 @@ def main():
     isto2 = df_bar_rid['Quantità'].plot(kind='hist', bins=bins_scelti2)
     st.pyplot(isto2.figure,clear_figure=True)
 
+    st.title('Lag plot sui bar senza outliers')
+    lag2 = int(st.text_input(f'Scegli il lag (dev\'essere un numero intero compreso tra 1 e {len(df_bar_rid)-1}!)',value=1))
+    if (lag2>len(df_bar_rid)-1) or (lag2 < 1):
+        st.write(f'Devi inserire un numero compreso tra 1 e {len(df_bar_rid)-1}!')
+    else:
+        grafico_lag2 = lag_plot(df_bar_rid['Quantità'],lag2)
+        st.pyplot(grafico_lag2.figure,clear_figure=True)
+        
+        autocorrelation_vet2 = acf(df_bar_rid['Quantità'],nlags=lag2)
+        autocorrelation2 = autocorrelation_vet2[-1]
+        st.write(f'L\'autocorrelazione di questo lag plot è del {round(100*autocorrelation2,2)}%')
+
+
     model = joblib.load('model_bar.pkl')
 
     st.title('Componenti dei bar senza outliers')
@@ -58,6 +85,7 @@ def main():
     comp = model.plot_components(forecast)
     st.pyplot(comp.figure,clear_figure=True)
 
+    st.title('Forecasting')
     da_pred = st.slider('Scegli quanti giorni prevedere',1,365,1)
     future = model.make_future_dataframe(da_pred, freq='D')
     forecast = model.predict(future)
