@@ -8,7 +8,7 @@ from statsmodels.tsa.stattools import acf
 
 def main():
     st.title('Dataframe originale sui cocktails')
-    df = pd.read_excel('ciao.xlsx', parse_dates=True)
+    df = pd.read_excel('dati.xlsx', parse_dates=True)
     copia_df=df.copy()
     df_cocktail=copia_df[copia_df['Tipologia']=='Cocktail']
     df_cocktail=df_cocktail.drop('Tipologia',axis=1)
@@ -90,7 +90,7 @@ def main():
         autocorrelation2 = autocorrelation_vet2[-1]
         st.write(f'L\'autocorrelazione di questo lag plot è del {round(100*autocorrelation2,2)}%')
 
-    model = joblib.load('model_prophet_Matteo_Annalissa.pkl')
+    model = joblib.load('model_cocktail.pkl')
 
     st.title('Componenti dei cocktail senza outliers')
     quanto_trend = st.slider('Scegli per quanti giorni nel futuro vuoi vedere il trend',0,365,1)
